@@ -36,11 +36,36 @@ exports.addSweets = async (req, res) => {
 // GET /sweets
 exports.getAllSweets = async (req, res) => {
   try {
-    const sweets = await Sweet.find();
+    let { sortBy, order } = req.query;
+    const validSortFields = ['name', 'price', 'category', 'quantity'];
+
+    // Default sort
+    let sortOptions = {};
+
+    if (sortBy) {
+      // Validate sortBy field
+      if (!validSortFields.includes(sortBy)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid sortBy field. Allowed: name, price, category, quantity',
+        });
+      }
+
+      // Validate order
+      if (order && !['asc', 'desc'].includes(order.toLowerCase())) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid order value. Use "asc" or "desc".',
+        });
+      }
+
+      sortOptions[sortBy] = order?.toLowerCase() === 'desc' ? -1 : 1;
+    }
+
+    const sweets = await Sweet.find().sort(sortOptions);
 
     return res.status(200).json({
       success: true,
-      message: 'Fetched all sweets successfully.',
       data: sweets,
     });
   } catch (err) {
@@ -48,7 +73,6 @@ exports.getAllSweets = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Internal Server Error',
-      error: err.message,
     });
   }
 };
