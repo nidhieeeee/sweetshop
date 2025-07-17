@@ -98,6 +98,14 @@ describe('DELETE /api/sweets/:id', () => {
     expect(fetchRes.body.data.length).toBe(0);
   });
 
+  it('should return 400 for invalid ObjectId', async () => {
+    const res = await request(app).delete('/api/sweets/invalid-id-123');
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toMatch(/Invalid ID format/i);
+  });
+
   it('should return 404 if sweet does not exist', async () => {
     const fakeId = '64a06fa2ebd02f6a22993a61'; 
     const res = await request(app).delete(`/api/sweets/${fakeId}`);
