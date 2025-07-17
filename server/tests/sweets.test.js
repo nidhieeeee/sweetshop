@@ -252,6 +252,6 @@ describe('GET /api/sweets/search', () => {
 
     expect(res.statusCode).toBe(400);
     expect(res.body.success).toBe(false);
-    expect(res.body.message).toMatch(/at least one query param is required/i);
+    expect(res.body.message).toMatch(/at least one query param.*required/i);
   });
 });

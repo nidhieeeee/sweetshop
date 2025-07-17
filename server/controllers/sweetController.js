@@ -87,3 +87,65 @@ exports.deleteSweetById = async (req, res) => {
     });
   }
 };
+
+exports.searchSweets = async (req, res) => {
+  try {
+    const { name, category, min, max } = req.query;
+
+    // If no query params
+    if (!name && !category && !min && !max) {
+      return res.status(400).json({
+        success: false,
+        message: 'At least one query param is required.',
+      });
+    }
+
+    const query = {};
+
+    // Name search (case-insensitive)
+    if (name) {
+      query.name = { $regex: name, $options: 'i' };
+    }
+
+    // Category search (case-insensitive)
+    if (category) {
+      query.category = { $regex: category, $options: 'i' };
+    }
+
+    // Price Range Validation
+    if ((min && isNaN(min)) || (max && isNaN(max))) {
+      return res.status(400).json({
+        success: false,
+        message: 'min and max should be valid numbers.',
+      });
+    }
+
+    if (min && max && Number(min) > Number(max)) {
+      return res.status(400).json({
+        success: false,
+        message: 'min cannot be greater than max.',
+      });
+    }
+
+    // Price range query
+    if (min || max) {
+      query.price = {};
+      if (min) query.price.$gte = Number(min);
+      if (max) query.price.$lte = Number(max);
+    }
+
+    const sweets = await Sweet.find(query);
+
+    return res.status(200).json({
+      success: true,
+      data: sweets,
+    });
+
+  } catch (err) {
+    console.error('Search Error:', err.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal Server Error',
+    });
+  }
+};
