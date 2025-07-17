@@ -396,3 +396,45 @@ describe('POST /api/sweets/:id/restock', () => {
     expect(res.body.message).toBe('Sweet not found.');
   });
 });
+
+//test : sorting sweets
+describe('GET /api/sweets - sorting', () => {
+  beforeEach(async () => {
+    const sweets = [
+      { name: 'Kaju Katli', category: 'Nut-Based', price: 50, quantity: 20 },
+      { name: 'Gulab Jamun', category: 'Milk-Based', price: 10, quantity: 50 },
+      { name: 'Rasgulla', category: 'Milk-Based', price: 30, quantity: 15 },
+    ];
+    await Sweet.insertMany(sweets);
+  });
+
+  it('should sort sweets by price in ascending order', async () => {
+    const res = await request(app).get('/api/sweets?sortBy=price&order=asc');
+    expect(res.statusCode).toBe(200);
+    expect(res.body.success).toBe(true);
+    const prices = res.body.data.map(s => s.price);
+    expect(prices).toEqual([10, 30, 50]);
+  });
+
+  it('should sort sweets by name in descending order', async () => {
+    const res = await request(app).get('/api/sweets?sortBy=name&order=desc');
+    expect(res.statusCode).toBe(200);
+    expect(res.body.success).toBe(true);
+    const names = res.body.data.map(s => s.name);
+    expect(names).toEqual(['Rasgulla', 'Kaju Katli', 'Gulab Jamun'].sort().reverse());
+  });
+
+  it('should return 400 if sortBy field is invalid', async () => {
+    const res = await request(app).get('/api/sweets?sortBy=invalidField');
+    expect(res.statusCode).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toMatch(/Invalid sortBy field/i);
+  });
+
+  it('should return 400 if order is invalid', async () => {
+    const res = await request(app).get('/api/sweets?sortBy=price&order=random');
+    expect(res.statusCode).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toMatch(/Invalid order value/i);
+  });
+});
