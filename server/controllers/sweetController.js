@@ -212,3 +212,58 @@ exports.purchaseSweet = async (req, res) => {
     });
   }
 };
+
+exports.restockSweet = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { quantity } = req.body;
+
+    // Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid ID format.',
+      });
+    }
+
+    // Validate quantity
+    if (quantity === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: 'Quantity is required.',
+      });
+    }
+
+    if (typeof quantity !== 'number' || quantity <= 0) {
+      return res.status(422).json({
+        success: false,
+        message: 'Quantity must be a positive number.',
+      });
+    }
+
+    // Find sweet
+    const sweet = await Sweet.findById(id);
+    if (!sweet) {
+      return res.status(404).json({
+        success: false,
+        message: 'Sweet not found.',
+      });
+    }
+
+    // Increase stock
+    sweet.quantity += quantity;
+    await sweet.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Sweet restocked successfully.',
+      data: sweet,
+    });
+  } catch (err) {
+    console.error('Restock Error:', err.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal Server Error',
+    });
+  }
+};
