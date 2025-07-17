@@ -20,6 +20,60 @@ afterEach(async () => {
 });
 
 describe('POST /api/sweets', () => {
+  it('should return 400 if required fields are missing', async () => {
+    const res = await request(app).post('/api/sweets').send({});
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toMatch(/validation/i);
+  });
+
+  it('should return 400 if price is not a number', async () => {
+    const invalidSweet = {
+      name: 'Barfi',
+      category: 'Milk-Based',
+      price: 'fifty',
+      quantity: 10
+    };
+
+    const res = await request(app).post('/api/sweets').send(invalidSweet);
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toMatch(/validation/i);
+  });
+
+  it('should return 400 if quantity is negative', async () => {
+    const invalidSweet = {
+      name: 'Peda',
+      category: 'Milk-Based',
+      price: 15,
+      quantity: -5
+    };
+
+    const res = await request(app).post('/api/sweets').send(invalidSweet);
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toMatch(/validation/i);
+  });
+
+  it('should ignore unknown fields', async () => {
+    const sweetWithExtra = {
+      name: 'Rasgulla',
+      category: 'Milk-Based',
+      price: 25,
+      quantity: 30,
+      madeByAliens: true
+    };
+
+    const res = await request(app).post('/api/sweets').send(sweetWithExtra);
+
+    expect(res.statusCode).toBe(201);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data).not.toHaveProperty('madeByAliens');
+  });
+
   it('should create a new sweet', async () => {
     // Define a new sweet object
     const newSweet = {
@@ -72,6 +126,7 @@ describe('GET /api/sweets', () => {
     expect(res.body.data[1].category).toBe('Milk-Based');
   });
 });
+
 
 describe('DELETE /api/sweets/:id', () => {
   it('should delete the sweet by ID', async () => {
