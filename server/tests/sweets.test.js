@@ -170,3 +170,88 @@ describe('DELETE /api/sweets/:id', () => {
     expect(res.body.message).toBe('Sweet not found.');
   });
 });
+
+describe('GET /api/sweets/search', () => {
+  beforeEach(async () => {
+    await Sweet.insertMany([
+      { name: 'Rasgulla', category: 'Milk-Based', price: 25, quantity: 10 },
+      { name: 'Kaju Katli', category: 'Nut-Based', price: 50, quantity: 20 },
+      { name: 'Gulab Jamun', category: 'Milk-Based', price: 10, quantity: 30 },
+    ]);
+  });
+
+  // Search by Name
+  it('should return sweets matching name (case-insensitive)', async () => {
+    const res = await request(app).get('/api/sweets/search?name=rasgulla');
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.length).toBe(1);
+    expect(res.body.data[0].name.toLowerCase()).toContain('rasgulla');
+  });
+
+  // Search by Category
+  it('should return sweets matching category (case-insensitive)', async () => {
+    const res = await request(app).get('/api/sweets/search?category=milk-based');
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.length).toBe(2);
+    expect(res.body.data[0].category.toLowerCase()).toBe('milk-based');
+  });
+
+  // Search by Price Range
+  it('should return sweets within the given price range', async () => {
+    const res = await request(app).get('/api/sweets/search?min=10&max=30');
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.length).toBe(2); // Rasgulla (25), Gulab Jamun (10)
+  });
+
+  // Combined Query (name + category)
+  it('should allow combined queries (e.g., name + category)', async () => {
+    const res = await request(app).get('/api/sweets/search?name=jamun&category=milk-based');
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.length).toBe(1);
+    expect(res.body.data[0].name.toLowerCase()).toContain('jamun');
+  });
+
+  // Invalid price values
+  it('should return 400 if price values are not numbers', async () => {
+    const res = await request(app).get('/api/sweets/search?min=cheap&max=expensive');
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toMatch(/min and max should be valid numbers/i);
+  });
+
+  // Invalid price logic (min > max)
+  it('should return 400 if min > max', async () => {
+    const res = await request(app).get('/api/sweets/search?min=100&max=10');
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toMatch(/min cannot be greater than max/i);
+  });
+
+  // No matching sweets
+  it('should return empty array if no match is found', async () => {
+    const res = await request(app).get('/api/sweets/search?name=laddu');
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data).toEqual([]);
+  });
+
+  // No query at all
+  it('should return 400 if no query parameter is provided', async () => {
+    const res = await request(app).get('/api/sweets/search');
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toMatch(/at least one query param is required/i);
+  });
+});
