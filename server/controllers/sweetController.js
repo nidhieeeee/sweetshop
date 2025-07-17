@@ -37,3 +37,23 @@ exports.addSweets = async (req, res) => {
     });
   }
 };
+
+ // GET /sweets
+exports.getAllSweets = async (req, res) => {
+  try {
+    const sweets = await Sweet.find();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Fetched all sweets successfully.',
+      data: sweets,
+    });
+  } catch (err) {
+    console.error('Error fetching sweets:', err.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal Server Error',
+      error: err.message,
+    });
+  }
+};
