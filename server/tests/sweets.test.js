@@ -330,3 +330,69 @@ describe('POST /api/sweets/:id/purchase', () => {
     expect(res.body.message).toMatch(/not enough stock/i);
   });
 });
+
+// test: restock sweets
+describe('POST /api/sweets/:id/restock', () => {
+  let sweetId;
+
+  beforeEach(async () => {
+    const res = await request(app).post('/api/sweets').send({
+      name: 'Barfi',
+      category: 'Milk-Based',
+      price: 20,
+      quantity: 10,
+    });
+    sweetId = res.body.data._id;
+  });
+
+  it('should increase quantity when restock is successful', async () => {
+    const res = await request(app)
+      .post(`/api/sweets/${sweetId}/restock`)
+      .send({ quantity: 5 });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.quantity).toBe(15);
+  });
+
+  it('should return 400 if quantity is missing', async () => {
+    const res = await request(app)
+      .post(`/api/sweets/${sweetId}/restock`)
+      .send({});
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toMatch(/quantity is required/i);
+  });
+
+  it('should return 422 if quantity is not a positive number', async () => {
+    const res = await request(app)
+      .post(`/api/sweets/${sweetId}/restock`)
+      .send({ quantity: 0 });
+
+    expect(res.statusCode).toBe(422);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toMatch(/positive number/i);
+  });
+
+  it('should return 400 for invalid ObjectId', async () => {
+    const res = await request(app)
+      .post('/api/sweets/invalid-id/restock')
+      .send({ quantity: 5 });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toMatch(/Invalid ID format/i);
+  });
+
+  it('should return 404 if sweet not found', async () => {
+    const fakeId = '64a0ccf8bcf86cd799439011';
+    const res = await request(app)
+      .post(`/api/sweets/${fakeId}/restock`)
+      .send({ quantity: 5 });
+
+    expect(res.statusCode).toBe(404);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toBe('Sweet not found.');
+  });
+});
