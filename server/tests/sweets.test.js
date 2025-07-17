@@ -255,3 +255,78 @@ describe('GET /api/sweets/search', () => {
     expect(res.body.message).toMatch(/at least one query param.*required/i);
   });
 });
+
+describe('POST /api/sweets/:id/purchase', () => {
+  let sweetId;
+
+  beforeEach(async () => {
+    const res = await request(app).post('/api/sweets').send({
+      name: 'Kaju Katli',
+      category: 'Nut-Based',
+      price: 50,
+      quantity: 20,
+    });
+    sweetId = res.body.data._id;
+  });
+
+  it('should reduce quantity when purchase is successful', async () => {
+    const res = await request(app)
+      .post(`/api/sweets/${sweetId}/purchase`)
+      .send({ quantity: 5 });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.quantity).toBe(15);
+  });
+
+  it('should return 400 if quantity is not provided', async () => {
+    const res = await request(app)
+      .post(`/api/sweets/${sweetId}/purchase`)
+      .send({});
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toMatch(/quantity is required/i);
+  });
+
+  it('should return 422 if quantity is negative or zero', async () => {
+    const res = await request(app)
+      .post(`/api/sweets/${sweetId}/purchase`)
+      .send({ quantity: -3 });
+
+    expect(res.statusCode).toBe(422);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toMatch(/must be a positive number/i);
+  });
+
+  it('should return 400 if ObjectId is invalid', async () => {
+    const res = await request(app)
+      .post(`/api/sweets/invalid-id/purchase`)
+      .send({ quantity: 2 });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toMatch(/Invalid ID format/i);
+  });
+
+  it('should return 404 if sweet does not exist', async () => {
+    const nonExistentId = '64a0ccf8bcf86cd799439011';
+    const res = await request(app)
+      .post(`/api/sweets/${nonExistentId}/purchase`)
+      .send({ quantity: 2 });
+
+    expect(res.statusCode).toBe(404);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toBe('Sweet not found.');
+  });
+
+  it('should return 400 if not enough stock is available', async () => {
+    const res = await request(app)
+      .post(`/api/sweets/${sweetId}/purchase`)
+      .send({ quantity: 100 });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toMatch(/not enough stock/i);
+  });
+});
